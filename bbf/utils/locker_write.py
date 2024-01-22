@@ -8,11 +8,18 @@ def save_dict_to_hdf5(dic, hf, path=""):
     for key, item in dic.items():
         key_path = f"{path}/{key}" if path else key  # Create a nested path in HDF5 file
 
+        # Check if the dataset already exists, and if so, delete it
+        if key_path in hf:
+            del hf[key_path]
+
         if isinstance(item, pd.DataFrame):
             # Convert DataFrame to CSV and store as a string
             csv_string = item.to_csv(index=True)
             hf.create_dataset(key_path, data=csv_string)
         elif isinstance(item, dict):
+            # If a sub-dictionary, create a group (if it doesn't exist)
+            if key_path not in hf:
+                hf.create_group(key_path)
             # Recursively save dictionary
             save_dict_to_hdf5(item, hf, key_path)
         else:

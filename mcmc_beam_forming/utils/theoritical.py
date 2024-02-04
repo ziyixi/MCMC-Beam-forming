@@ -26,8 +26,7 @@ def get_theoritical_azi_v_takeoff(
     csv_path = dir_path / "IASP91.csv"
     df_velocity = pd.read_csv(csv_path, names=["depth", "r", "vp", "vs"])
     f_vp = interpolate.interp1d(df_velocity.depth, df_velocity.vp)
-    f_vs = interpolate.interp1d(df_velocity.depth, df_velocity.vs)
-    target_vp, target_vs = f_vp(ref_dep), f_vs(ref_dep)
+    target_vp = f_vp(ref_dep)
 
     arrival = model.get_travel_times(
         source_depth_in_km=ref_dep,
@@ -36,4 +35,4 @@ def get_theoritical_azi_v_takeoff(
     )[0]
     takeoff = 90 - arrival.takeoff_angle
 
-    return azi, target_vp, target_vs, takeoff
+    return azi, target_vp, takeoff

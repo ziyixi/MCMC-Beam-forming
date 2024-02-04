@@ -11,9 +11,11 @@ from numba import complex128, float64, int64, njit, objmode
 from numba.experimental import jitclass
 from numpy.typing import NDArray
 
+from mcmc_beam_forming.utils.setting import PARSE_OMEGA_RATIO, WAVEFORM_DELTA
+
 
 @njit()
-def parallel_get_weight_omega(self, omega_idx: int):
+def get_weight_omega_jit(self, omega_idx: int):
     # not parallel anyway as we are using MPI
     # change from 6,6,0.3 to 2,2,0.1 will not change the result
     phis = np.arange(-90, 90, 6)
@@ -21,8 +23,7 @@ def parallel_get_weight_omega(self, omega_idx: int):
     vs = np.arange(5.5, 11.5, 0.3)
 
     res = np.zeros((len(phis), len(thetas), len(vs)), dtype=np.float64)
-    for i in range(len(phis)):
-        phi = phis[i]
+    for i, phi in enumerate(phis):
         for j, theta in enumerate(thetas):
             for k, v in enumerate(vs):
                 res[i, j, k] = self.get_power_s_omega(phi, theta, v, omega_idx)
@@ -47,9 +48,9 @@ class FreqBF:
         self,
         waveforms: NDArray[np.float64],
         coordinates_lld: NDArray[np.float64],
-        dt: float,
-        parse_omega_ratio: float,
     ):
+        dt = WAVEFORM_DELTA
+        parse_omega_ratio = PARSE_OMEGA_RATIO
         # * global parameters
         # m: number of traces, n: trace length
         m, n = waveforms.shape
@@ -140,7 +141,7 @@ class FreqBF:
         return np.real(u * np.conjugate(u))
 
     def get_weight_omega(self, omega_idx: int) -> float:
-        return parallel_get_weight_omega(self, omega_idx)
+        return get_weight_omega_jit(self, omega_idx)
 
     def get_power_s(self, phi: float, theta: float, v: float) -> float:
         res = 0

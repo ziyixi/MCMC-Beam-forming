@@ -1,6 +1,7 @@
+from typing import Tuple
+
 import numpy as np
 import pandas as pd
-from loguru import logger
 
 
 def get_grids(
@@ -15,39 +16,8 @@ def get_grids(
     vertical_size: float,
     info: pd.DataFrame,
     minimum_number_of_ps_events_in_box: int,
-    global_rank: int,
-):
-    """
-    Get the grids to search for.
-
-    Parameters
-    ----------
-    lon0: float
-        The minimum longitude of the search area.
-    lon1: float
-        The maximum longitude of the search area.
-    lat0: float
-        The minimum latitude of the search area.
-    lat1: float
-        The maximum latitude of the search area.
-    lon_step: float
-        The step length of longitude.
-    lat_step: float
-        The step length of latitude.
-    depth_step: float
-        The step length of depth.
-    horizontal_size: float
-        The horizontal size of the box.
-    vertical_size: float
-        The vertical size of the box.
-    arrival_info: pd.DataFrame
-        The arrival information.
-    minimum_number_of_ps_events_in_box: int
-        The minimum number of ps events in the box.
-    """
+) -> Tuple[dict, pd.DataFrame]:
     # * 1. Filter the arrival info
-    if global_rank == 0:
-        logger.info("Filtering arrival info csv file...")
     arrival_info = info.copy()
     arrival_info["ORIGIN_TIME"] = pd.to_datetime(arrival_info["ORIGIN_TIME"])
     arrival_info["PTIME"] = pd.to_datetime(arrival_info["PTIME"])
@@ -67,11 +37,8 @@ def get_grids(
     all_stations = set(arrival_info["STATION"])
 
     grids_raw = {}
-    covered = set()
 
     # * 2. Get the grids that covers all stations
-    if global_rank == 0:
-        logger.info("Getting the boxes...")
 
     # Function to check if one set of indexes completely covers another
     def is_covered(set_a, set_b):
@@ -106,7 +73,7 @@ def get_grids(
                     & (arrival_info["EDEP"] >= box_dep[0])
                     & (arrival_info["EDEP"] <= box_dep[1])
                 ]
-                if len(filtered_info) > minimum_number_of_ps_events_in_box:
+                if len(filtered_info) >= minimum_number_of_ps_events_in_box:
                     indexes = sorted(filtered_info["INDEX"].tolist())
                     indexes_set = set(indexes)
 
@@ -136,11 +103,6 @@ def get_grids(
                 if sta not in grids:
                     grids[sta] = {}
                 index_this_grid_this_sta = sorted(info_this_sta["INDEX"].tolist())
-                grids[sta][positions] = info_this_sta
-                covered = covered.union(set(index_this_grid_this_sta))
+                grids[sta][positions] = index_this_grid_this_sta
 
-    if global_rank == 0:
-        logger.info(
-            f"Number of grids: {len(grids)}, number of covered ps arrivals: {len(covered)}, ratio of ps arrivals covered: {len(covered)/len(arrival_info)*100:.2f}%"
-        )
-    return grids
+    return grids, arrival_info

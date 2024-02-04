@@ -165,3 +165,4 @@ bbf.hdf5
 bbf.lock
 bbf.h5
 bbf.sh
+mcmcbf_output/*

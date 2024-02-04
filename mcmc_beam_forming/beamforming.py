@@ -154,9 +154,7 @@ def main(
             )
 
     with MPIPoolExecutor() as executor:
-        executor.map(
-            bf_wrapper, yield_arrival_info_for_subsample(subsamples_list[:100])
-        )
+        executor.map(bf_wrapper, yield_arrival_info_for_subsample(subsamples_list))
 
     logger.info("Beamforming finished")
 

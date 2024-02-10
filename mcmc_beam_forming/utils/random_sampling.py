@@ -26,12 +26,12 @@ def unique_subsamples(grids_total: dict) -> iter:
     Generate unique subsamples from grids_total using NumPy for random index generation.
     Optimized with Numba.
     """
-    seen_samples = set()
+    seen_samples = []
     np.random.seed(RANDOM_SAMPLING_SEED)
 
-    for key1 in sorted(grids_total.keys()):
-        for key2 in sorted(grids_total[key1].keys()):
-            data = grids_total[key1][key2]
+    for sta in sorted(grids_total.keys()):
+        for position in sorted(grids_total[sta].keys()):
+            data = grids_total[sta][position]
             array_length = len(data)
 
             subsamples = generate_subsampling_indices(
@@ -39,8 +39,8 @@ def unique_subsamples(grids_total: dict) -> iter:
             )
 
             for idx_set in subsamples:
-                sample = tuple(sorted(data[i] for i in idx_set))
-                seen_samples.add(sample)
+                sample = tuple(sorted(data[i] for i in idx_set) + [sta, position])
+                seen_samples.append(sample)
 
-    seen_samples_list = sorted(list(seen_samples))
-    return seen_samples_list
+    seen_samples.sort()
+    return seen_samples

@@ -44,6 +44,7 @@ def get_grids(
     def is_covered(set_a, set_b):
         return set_a.issuperset(set_b)
 
+    grids_index = 0
     for center_lon in np.arange(
         lon0 + horizontal_size / 2, lon1 - horizontal_size / 2 + lon_step, lon_step
     ):
@@ -90,7 +91,13 @@ def get_grids(
                         del grids_raw[key]
 
                     if not is_new_grid_covered:
-                        grids_raw[tuple(indexes)] = (center_lon, center_lat, center_dep)
+                        grids_raw[tuple(indexes)] = (
+                            center_lon,
+                            center_lat,
+                            center_dep,
+                            grids_index,
+                        )
+                        grids_index += 1
 
     # * 3. Filter the grids for each station
     # for each grid, filter info for each station, and filter info in a new dict only if occurance > 30

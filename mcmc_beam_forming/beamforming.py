@@ -17,6 +17,7 @@ from mcmc_beam_forming.utils.io import (
 )
 from mcmc_beam_forming.utils.optim import brute_force_search
 from mcmc_beam_forming.utils.random_sampling import unique_subsamples
+from mcmc_beam_forming.utils.setting import LOG_INTERVAL
 from mcmc_beam_forming.utils.theoritical import get_theoritical_azi_v_takeoff
 
 comm = MPI.COMM_WORLD
@@ -24,8 +25,12 @@ rank = comm.Get_rank()
 size = comm.Get_size()
 
 
-def bf_wrapper(parameter: Tuple[pd.DataFrame, Path, int]):
-    df, output_directory_path, itask = parameter
+def bf_wrapper(
+    parameter: Tuple[
+        pd.DataFrame, Path, int, str, Tuple[float, float, float, int], int
+    ],
+):
+    df, output_directory_path, itask, station, position, total_tasks = parameter
     # * generate waveforms based on the info table
     station_lld = [df["SLON"].iloc[0], df["SLAT"].iloc[0]]
     arrival_times, coordinates = read_time_info(df, phase_key="PS")
@@ -41,19 +46,21 @@ def bf_wrapper(parameter: Tuple[pd.DataFrame, Path, int]):
         waves[idx, :] = waveforms[k].data[:n]
         coors[idx, :] = coordinates[k]
 
+    # get beamforming theoritical values
+    azi_theoritical, v_theoritical, takeoff_theoritical = get_theoritical_azi_v_takeoff(
+        coors, station_lld
+    )
+
     # * construct the class and do optimization
     bf = FreqBF(waves, coors)
     rrange = {
         "phi": np.arange(-90, 90, 2),
-        "theta": np.arange(0, 360, 2),
+        "theta": [azi_theoritical],
         "v": np.arange(5.5, 11.5, 0.1),
     }
 
     takeoff_opt, azi_opt, v_opt, amplitude_opt = brute_force_search(
         bf, rrange["phi"], rrange["theta"], rrange["v"]
-    )
-    azi_theoritical, v_theoritical, takeoff_theoritical = get_theoritical_azi_v_takeoff(
-        coors, station_lld
     )
     res = {
         "takeoff_opt": takeoff_opt,
@@ -65,10 +72,13 @@ def bf_wrapper(parameter: Tuple[pd.DataFrame, Path, int]):
         "takeoff_theoritical": takeoff_theoritical,
     }
     # save key is the sorted index of the dataframe
-    key = tuple(sorted(df["INDEX"].tolist()))
+    key = sorted(df["INDEX"].tolist()) + [station, position]
     output_file_path = output_directory_path / f"{rank}.h5"
     write_to_hdf5(res, str(output_file_path), key)
-    logger.info(f"Process [{rank}/{size}] Finished Task {itask} with length {len(df)}")
+    if itask % LOG_INTERVAL == 0:
+        logger.info(
+            f"Process [{rank}/{size}] Finished Task {itask}/{total_tasks} with length {len(df)}"
+        )
 
 
 @click.command()
@@ -146,11 +156,16 @@ def main(
 
     def yield_arrival_info_for_subsample(subsample_lst):
         for itask, subsample_item in enumerate(subsample_lst):
-            subsample_item = list(subsample_item)
+            subsample_item_raw = list(subsample_item)
+            subsample_item = subsample_item_raw[:-2]
+            station, position = subsample_item_raw[-2:]
             yield (
                 arrival_info.loc[subsample_item],
                 output_directory_path,
                 itask,
+                station,
+                position,
+                len(subsample_lst),
             )
 
     with MPIPoolExecutor() as executor:

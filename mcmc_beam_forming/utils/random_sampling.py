@@ -41,5 +41,4 @@ def unique_subsamples(grids_total: dict, random_resampling_times: int) -> iter:
                 sample = tuple(sorted(data[i] for i in idx_set) + [sta, position])
                 seen_samples.append(sample)
 
-    seen_samples.sort()
     return seen_samples

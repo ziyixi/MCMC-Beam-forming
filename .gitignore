@@ -168,3 +168,6 @@ bbf.sh
 mcmcbf_output*/*
 notebook/*
 *pkl
+*h5
+*err
+*out

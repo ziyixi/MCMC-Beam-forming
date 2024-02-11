@@ -113,6 +113,12 @@ def bf_wrapper(
     default="mcmcbf_output",
     help="The output hdf5 file name, containing the results of the beamforming and bootstrap",
 )
+@click.option(
+    "--random_resampling_times",
+    default=100,
+    help="The number of random resampling times in each box",
+    type=int,
+)
 def main(
     coordinates: str,
     search_step_length: str,
@@ -120,6 +126,7 @@ def main(
     arrival_info_file: str,
     minumum_number_of_ps_events_in_box: int,
     output_directory: str,
+    random_resampling_times: int,
 ):
     # * parse the parameters
     lon0, lon1, lat0, lat1 = [float(x) for x in coordinates.split(",")]
@@ -149,7 +156,7 @@ def main(
     # save arrival_info to output_directory_path/arrival_info.csv
     arrival_info.to_csv(output_directory_path / "arrival_info.csv")
 
-    subsamples_list = unique_subsamples(grids_total)
+    subsamples_list = unique_subsamples(grids_total, random_resampling_times)
     logger.info(
         f"Total number of subsamples: {len(subsamples_list)}, start to beamforming"
     )

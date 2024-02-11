@@ -2,7 +2,6 @@ import numpy as np
 from numba import njit
 
 from mcmc_beam_forming.utils.setting import (
-    RANDOM_SAMPLE_TIMES,
     RANDOM_SAMPLING_RATIO,
     RANDOM_SAMPLING_SEED,
 )
@@ -21,7 +20,7 @@ def generate_subsampling_indices(array_length, num_samples):
     return indices
 
 
-def unique_subsamples(grids_total: dict) -> iter:
+def unique_subsamples(grids_total: dict, random_resampling_times: int) -> iter:
     """
     Generate unique subsamples from grids_total using NumPy for random index generation.
     Optimized with Numba.
@@ -35,7 +34,7 @@ def unique_subsamples(grids_total: dict) -> iter:
             array_length = len(data)
 
             subsamples = generate_subsampling_indices(
-                array_length, num_samples=RANDOM_SAMPLE_TIMES
+                array_length, num_samples=random_resampling_times
             )
 
             for idx_set in subsamples:

@@ -7,9 +7,16 @@ from numpy.typing import NDArray
 from obspy.geodetics import locations2degrees
 from obspy.taup import TauPyModel
 from scipy import interpolate
+from functools import lru_cache
 
 model = TauPyModel(model="iasp91")
 
+@lru_cache(maxsize=None)
+def load_csv():
+    dir_path = Path(__file__).parent
+    csv_path = dir_path / "IASP91.csv"
+    df_velocity = pd.read_csv(csv_path, names=["depth", "r", "vp", "vs"])
+    return df_velocity
 
 def get_theoritical_azi_v_takeoff(
     coordinates_lld: NDArray[np.float64], station_lld: NDArray[np.float64]
@@ -22,9 +29,7 @@ def get_theoritical_azi_v_takeoff(
     e, n, u = pm.geodetic2enu(slat, slon, 0, ref_lat, ref_lon, -ref_dep * 1000)
     azi = np.rad2deg(np.arctan2(n, e)) + 180
 
-    dir_path = Path(__file__).parent
-    csv_path = dir_path / "IASP91.csv"
-    df_velocity = pd.read_csv(csv_path, names=["depth", "r", "vp", "vs"])
+    df_velocity = load_csv()
     f_vp = interpolate.interp1d(df_velocity.depth, df_velocity.vp)
     target_vp = f_vp(ref_dep)
 

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import List
 
 import click
+import jax
 import numpy as np
 import pymc as pm
 import pymc.math as pmath
@@ -86,9 +87,9 @@ def perform_mcmc(
     theoritical_takeoff: List[int],
     indicator_matrix: np.ndarray[float],
     sigma_good_v=1.0,
-    sigma_bad_v=5.0,
-    sigma_good_takeoff=20,
-    sigma_bad_takeoff=50,
+    sigma_bad_v=3.0,
+    sigma_good_takeoff=15,
+    sigma_bad_takeoff=45,
     warm_up_steps=1000,
     draw_steps=1000,
     chain=1,
@@ -148,19 +149,29 @@ def perform_mcmc(
     type=int,
 )
 @click.option("--chain", default=1, help="The number of the MCMC chain, default to 1.")
+@click.option("--current_divide", default=0, help="The current divide, default to 0.",type=int)
 def main(
-    beamforming_pickle_file: str, output_directory: str, num_divide: int, chain: int
+    beamforming_pickle_file: str,
+    output_directory: str,
+    num_divide: int,
+    chain: int,
+    current_divide: int,
 ):
     beamforming_pickle_file = Path(beamforming_pickle_file)
     output_directory = Path(output_directory)
     # make the output directory if not exist
     output_directory.mkdir(exist_ok=True)
+    logger.info(f"JAX devices: {jax.devices()}")
 
     logger.info("Loading the data")
     data, divide_keys = load_data(beamforming_pickle_file, num_divide)
 
-    logger.info(f"Start the MCMC simulation for {len(divide_keys)} divisions.")
+    logger.info(f"Start the MCMC simulation for {len(divide_keys)} divisions, current divide: {current_divide}")
     for i, divide_key_this_iteration in enumerate(divide_keys):
+        if i != current_divide:
+            # we skip other divisions to avoid a strange pymc memory issue
+            continue
+
         logger.info(f"Prepare the MCMC for the {i}th iteration")
         (
             observations_v,
@@ -187,6 +198,7 @@ def main(
         logger.info(f"Save the MCMC result for the {i}th iteration")
         # save the trace
         trace.to_netcdf(str(output_directory / f"trace_{i}.nc"))
+
         # save the idx2trueidx
         with open(output_directory / f"idx2trueidx_{i}.pkl", "wb") as f:
             pickle.dump(dict(idx2trueidx), f)

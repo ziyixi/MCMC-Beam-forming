@@ -7,7 +7,7 @@ license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "<3.12,>=3.9"
+python = "<3.12,>=3.10"
 pandas = "^2.2.0"
 numpy = "^1.26.3"
 pymap3d = "^3.0.1"
@@ -20,13 +20,13 @@ pyarrow = "^15.0.0"
 numba = "^0.59.0"
 pymc = "^5.10.3"
 numpyro = "^0.13.2"
-
-
-[tool.poetry.group.dev.dependencies]
+blackjax = "^1.1.0"
+sqlalchemy = "^1.4.51"
 ipykernel = "^6.29.0"
 ipywidgets = "^8.1.1"
 seaborn = "^0.13.2"
 graphviz = "^0.20.1"
+jax = {extras = ["cuda12"], version = "^0.5.0"}
 
 [build-system]
 requires = ["poetry-core"]

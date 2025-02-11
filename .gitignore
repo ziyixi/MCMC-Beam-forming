@@ -166,7 +166,6 @@ bbf.lock
 bbf.h5
 bbf.sh
 mcmcbf_output*/*
-notebook/*
 *h5
 *err
 *out
